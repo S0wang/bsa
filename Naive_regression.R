@@ -139,19 +139,3 @@ CR.reg.boot.repeat=apply(CR.reg.boot.point,c(1,3),quantile,probs = c(0.025,0.975
 CR.ipw.boot.repeat=apply(CR.ipw.boot.point,c(1,3),quantile,probs = c(0.025,0.975))
 CR.dr.boot.repeat=apply(CR.dr.boot.point,c(1,3),quantile,probs = c(0.025,0.975))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
