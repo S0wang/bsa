@@ -134,6 +134,28 @@ sample.DR2 = function(y.s, beta.s,lambda.s, beta.a,lambda.a,U,a1,a0){
   return(list(dr=dr,ate.reg=ate.reg,ate.ipw=ate.ipw))
 } 
 
+sample.DR.naive = function(y.s,fit.s.coeff ,lambda.s,fit.a.coeff,lambda.a,U,a1=1,a0=0,data){
+  d = data$status
+  y.s = log(data$eventtime)
+  U =   as.matrix(data %>% dplyr::select(U) )
+  X.s = as.matrix(data %>% dplyr::select(V1,A,C1,C2,C3,C4))
+  C = as.matrix(data %>% dplyr::select(C1,C2,C3,C4))
+  X.a = as.matrix(data %>% dplyr::select(V1,C1,C2,C3,C4)) 
+  A = as.matrix(data %>% dplyr::select(A)) 
+  
+  dr = dr1 =dr0= ate.reg = ate.ipw = NULL
+  #new1 =as.data.frame(cbind(rep(1,n), rep(a1 ,n),C)) ; new0 = as.data.frame(cbind(rep(1,n), rep(a0,n),C))
+  new1 =as.matrix(cbind(rep(1,n), rep(a1 ,n),C)) ; new0 = as.matrix(cbind(rep(1,n), rep(a0,n),C))
+  #pA = pnorm(X.a %*% as.matrix(c(fit.a.coeff),col=1) + lambda.a*U)
+  pA = pnorm(X.a %*% as.matrix(c(fit.a.coeff),col=1))
+  E.exp = new1%*%as.matrix(c(fit.s.coeff),col=1)  #stats::predict(fit.s.coeff, new1, type="linear") 
+  E.unexp = new0%*%as.matrix(c(fit.s.coeff),col=1)  #stats::predict(fit.s.coeff, new0, type="linear")   
+  dr = mean((y.s*A - (A-pA)*E.exp)/pA -  (y.s*(1-A) + (A-pA)*E.unexp)/(1-pA))
+  ate.reg =  mean(E.exp - E.unexp )
+  ate.ipw =  mean(y.s*A/pA -y.s*(1-A)/(1-pA)  )
+  return(list(dr=dr,ate.reg=ate.reg,ate.ipw=ate.ipw))
+} 
+
 
 #################################
 #### data simulation function ###
