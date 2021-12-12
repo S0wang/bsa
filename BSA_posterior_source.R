@@ -133,3 +133,68 @@ sample.DR2 = function(y.s, beta.s,lambda.s, beta.a,lambda.a,U,a1,a0){
   ate.ipw = mean(y.s*A/pA -y.s*(1-A)/(1-pA) )
   return(list(dr=dr,ate.reg=ate.reg,ate.ipw=ate.ipw))
 } 
+
+
+#################################
+#### data simulation function ###
+#################################
+simdata.bsa = function(lambda.a.list,lambda.s.list,beta.A,beta.Y,true.sigma2,seeds){
+  for (s in 1:length(lambda.a.list)){
+    for (j in 1:length(lambda.s.list)){
+      data.num = rbind(data.num,c(lambda.a.list[s],lambda.s.list[j]))
+      totdata = totdata+1
+      # covariates
+      set.seed(seeds)
+      inter = rep(1,n)
+      U = rbinom(n, 1L, 0.5)
+      C1 = rnorm(n, 0, 1)
+      C2 = rnorm(n, 0, 1)
+      C3 = rbinom(n, 1, 0.5)
+      C4 = rbinom(n, 1, 0.5)
+      C = cbind(C1,C2,C3,C4)
+      
+      # trt (binary): A
+      beta.A.all = c(beta.A,lambda.a.list[s])
+      A  = rbinom(n, 1, pnorm(cbind(inter,C,U)%*%beta.A.all)) 
+      #A = rbinom(n, 1L, 0.2)
+      mean(A)
+      
+      # outcome (survival weibull dist.): Y
+      #W = cbind( W1,W2)
+      Xs<- cbind(rep(1,n), A, C, U)
+      
+      set.seed(1258) #9568
+      beta.Y.all=c(beta.Y,lambda.s.list[j])
+      #true.mu = t(rmnorm(1, X%*%true.beta, 0.1*diag(n)))
+      true.mu= rep(0,n)
+      for (i in 1:n){
+        true.mu[i] = rnorm(1,Xs[i,]%*%beta.Y.all, sqrt(true.sigma2))
+      }
+      #mean(true.mu)
+      #true.lambda = X.all%*%true.beta
+      
+      survt = exp(true.mu)
+      #--add administrative censoring  
+      tmax = quantile(survt,prob=0.3)
+      d = tmax < survt # censoring indicator
+      table(d==1)
+      survt[d==1] = tmax 
+      status = rep(1,n)
+      status[d==1] = 0
+      table(status) 
+      s2 = data.frame(status, eventtime=survt, Xs)
+      mean(s2$status)
+      sim.list[[totdata]] = data.frame(s2)
+      colnames(sim.list[[totdata]]) = colnames(s2)
+    }
+  }
+ colnames(data.num) = c("lambda.a","lambda.s")
+ data.num = data.num[-1,]
+ return(list(sim.list=sim.list,data.num=data.num,totdata=totdata) )
+}
+
+
+
+
+
+
