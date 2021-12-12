@@ -1,1 +1,1 @@
-# Bayesian-sensitivity-analysis-for-unmeasured-confounding
+# BSA-for-unmeasured-confounding
