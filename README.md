@@ -1,2 +1,2 @@
 # BSA-for-unmeasured-confounding
-For this project, we propose a fully Bayesian sensitivity analysis built upon the framework on unmeasured confounding by \cite{carnegie2016assessing}, and evaluate then impact of unmeasured confounding on a selection of causal effect estimators. 
+For this project, we propose a fully Bayesian sensitivity analysis built upon the framework on unmeasured confounding by Carnegieet al. (2016), and evaluate then impact of unmeasured confounding on a selection of causal effect estimators. Posterior sampling can be constructed with the imputation step for $U$ based on its posterior distribution suggested by \cite{zhou2020bayesian}, and the \textbf{posterior step} that sample parameters from their full conditions.
