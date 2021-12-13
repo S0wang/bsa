@@ -1,0 +1,126 @@
+\section{Introduction}\label{sec:intro}
+Unmeasured confounding is a persistent issue in observational studies. Omitting variables that confound exposure and outcome relationship could lead to biased effect estimate. Solutions to mitigating bias from unmeasured confounding are multifold. A great level of subject matter knowledge on potential confounding variables is needed in the process of study design and data collection. A suitable design, for instance, family-based cohort study or pre- and post-treatment comparison, is sometimes an optimal choice to account for genetic and family-related environmental factors. However, when using a secondary database (e.g., administrative claims database or electronic health records), neither of the aforementioned solutions is feasible. In this context, sensitivity analyses have emerged as a supplemental tool that evaluate the robustness of the findings under varying scenarios. [\cite{holland1986statistics}]
+
+Unmeasured confounding variables can be considered as a missing data issue. Probabilistic sensitivity analysis using Bayesian sensitivity analysis (BSA) and Monte Carlo sensitivity analyses (MCSA) are becoming popular analytical approaches, in particular in the causal inference framework.  [\cite{mccandless2007bayesian,greenland2003impact,mccandless2017comparison}] Extensions have also been explored extensively. \cite{dorie2016flexible} proposed a Bayesian Additive Regression Tree model to account for non-linearity and dependence of covariates with the presence of unmeasured confounding. However, they fixed the bias parameters so that the credible interval cannot reflect uncertainty associated with unmeasured confounding. [\cite{zhou2020bayesian}] \cite{huang2020sensitivity} conducted sensitivty analysis on survival outcome with/without competing risk using EM algorithm following the same formulation by Carnegie et al. However, the work was also subject to the same drawback by fixing bias paramenters. Building on previous work, \cite{zhou2020bayesian} proposed a fully Bayesian framework that simultaneously addressed unmeasured confounding and misclassification of outcome. For this project, we propose a fully Bayesian sensitivity analysis built upon the framework on unmeasured confounding by \cite{carnegie2016assessing}, and evaluate then impact of unmeasured confounding on a selection of causal effect estimators. 
+
+As we are interested to conclude causality between the exposure and the outcome of interest by estimating causal effect estimator, we briefly introduce prerequisites of identification of causal effect in an observational study. Three assumptions are necessitated to allow for identification of causal effects (1) stable unit treatment value assumption (SUTVA) which assumes that the outcomes of individual $i$ does not depend on other individuals' treatment values; (2) positivity: the probability of receiving treatment must be greater than zero regardless all combinations of covariates values; (3) exchangeability or so called ignorability which indicates independence between the counterfactual outcome and the observed treatment. [\cite{hernan2020causal}]
+
+\section{Motivating Data}\label{data}
+As time-to-event data are frequently analyzed in observational studies, for instance, time-to-death or time to occurrence of disease of interest, we construct the analysis pertaining to survival outcome, although it can be easily adapted to binary or continuous outcomes. Let $t_i$ and $c_i$ be the event time and random censoring time for individual i. The observed time is denoted as $t^*_i = \min(t_i,c_i)$ and $\delta_i=I(t_i < c_i)$, denoting the occurrence of event. We proposed a binary variable for exposure status $Z$, and a binary variable for unmeasured confounder $U$. Lastly, we suppose a set of measured confounders $\textbf{X}$ that are common causes of both $Z$ and $T$.  
+
+\section{Methods}\label{sec:model}
+\subsection{Notations on causal effects}
+ To identify causal effect given observed data in an observational study, three assumptions need to be satisfied: stable unit treatment value assumption (SUTVA), positivity, ignorabiltiy or conditional ignorabiltiy (for details, see \cite{hernan2020causal}). Three average causal effect (ATE) estimators are oftentimes of interest and consistent when the aforementioned assumptions hold. First, we can postulate a regression model to estimate expectation of outcome given exposure and confounder, that is, $\mu(Z,X;\alpha) = E(Y|Z,X)$. The average causal effect based on regression model $\hat{\Delta}_{reg} = \frac{1}{n}\sum^{n}_{i=1}[\mu(Z=1,X;\hat{\alpha}) - \mu(Z=0,X;\hat{\alpha})]$ is a consistent estimator of ACE when $\mu(Z,X;\alpha)$ is correctly specified. \cite{hernan2020causal, lunceford2004stratification} In addition, we postulate a regression model for the conditional probability of binary exposure $Z$, this is, $P(Z|X) = \pi(X;\beta)$. The inverse probability weighted (IPW) estimator $\hat{\Delta}_{ipw} = \frac{1}{n}\sum^{n}_{i=1}[\frac{Z_iY_i}{\pi(X_i; \hat{\beta})} - \frac{(1-Z_i)Y_i}{1-\pi(X_i; \hat{\beta})}]$ is a consistent estimator of ACE when the treatment model $\pi(X; \hat{\beta})$ is correctly specified.\cite{hernan2020causal, lunceford2004stratification} Lastly, we construct a doubly robust estimator which only requires either the treatment model or outcome model to be correct to generate a consistent estimator of ACE. The doubly robust estimator $\Delta{dr}$ can be formulated as [\cite{lunceford2004stratification}]: 
+\begin{eqnarray}
+\hat{\Delta}_{dr} &=& \frac{1}{n}\sum^n_{i=1}[\frac{Z_iY_i}{\pi(X_i; \hat{\beta})} - \frac{(1-Z_i)Y_i}{1-\pi(X_i; \hat{\beta})} \\
+&& -[\frac{Z_i -\pi(X_i; \hat{\beta})}{\pi(X_i; \hat{\beta})}]\mu(Z=1,X;\hat{\alpha})   \nonumber \\
+&& -[\frac{Z_i -\pi(X_i; \hat{\beta})}{1-\pi(X_i; \hat{\beta})}]\mu(Z=0,X;\hat{\alpha})   \nonumber]
+\end{eqnarray} \\
+
+The ACE of binary exposure $Z$ on the logarithm-transformed event time is of interest.
+
+
+\subsection{Formulation of sensitivity analysis}
+In the proposed SA, we suppose that ignorability assumption is satisfied with an additional confounder $U$, that is, $Y^z \indep Z|X,U$. [\cite{dorie2016flexible}] We specify a joint probability distribution of observed data (i.e. $Y$ and $Z$) and the unmeasured confounding $U$ conditional on $X$ given by:
+\begin{equation}
+P(Y,Z,U|\textbf{X}) = P(Y|Z,\textbf{X},U)P(Z|\textbf{X},U)P(U|\textbf{X})
+\end{equation} 
+
+We specify Bayesian accelerated failure time regression to analyse the observed response pair ($t^*_i,\delta_i$). Following data augmentation approach proposed by \cite{bonato2011bayesian}, we derive a vector of $y_i,...y_n$ denoting log-transformed event time, where 
+\begin{eqnarray*}
+y_i = \log(t^*_i) \text{                if } \delta_i=1,\\
+y_i > \log(t^*_i) \text{                if } \delta_i=0,
+\end{eqnarray*}
+and 
+\begin{eqnarray}
+\log(t^*_i)|\beta_s,\zeta_s,\lambda_s \sim N(z_i^T\beta_s + \textbf{x}_i^T\zeta_s + u_i^T\lambda_s, \sigma^2_s)
+\end{eqnarray}
+\\
+
+To model exposure $Z$ as a function of measured and unmeasured confouders (i.e., $\textbf{X}$ and $U$), we adopt Bayesian probit binary models by \cite{albert1993bayesian} and apply data augmemtation approach followed by \cite{tanner1987calculation} to break non-conjugacy. 
+
+\begin{eqnarray}
+z^*_i|\textbf{z},\beta_z,\lambda_z \sim N(\textbf{x}_i^T\zeta_z + u_i^T\lambda_z, 1)I(z^*>0), \text{ if } z_i =1,\\
+z^*_i|\textbf{z},\beta_z,\lambda_z \sim N(\textbf{x}_i^T\zeta_z + u_i^T\lambda_z, 1)I(z^*<0), \text{ if } z_i =0
+\end{eqnarray}
+
+Additionally, we assume $U$ is independent of $X$ as $U$ represents another portion of confounding that is not explained by $X$. Therefore, $p(U) = p(U|X)$. [\cite{dorie2016flexible}]
+
+\subsection{Posterior specification and MCMC steps}
+Posterior sampling can be constructed with imputation step for $U$ based on its posterior distribution, and posterior step that sample parameters from the posterior distributions. The full model is given by: 
+\begin{eqnarray}
+y_{si}|\beta_s,\zeta_s,\lambda_s, \delta_i &\sim& N(z_i^T\beta_s + \textbf{x}_i^T\zeta_s + u_i^T\lambda_s, \sigma^2_s), \text{                if } \delta_i=1 \\
+y_{si}|\beta_s,\zeta_s,\lambda_s, \delta_i &\sim& N(z_i^T\beta_s + \textbf{x}_i^T\zeta_s + u_i^T\lambda_s, \sigma^2_s)I(y_{si}>\log(t^*_i), \text{                if } \delta_i=0 \\
+z_i|\beta_z,\lambda_z &\sim& Bernoulli(\Phi(\textbf{x}_i^T\zeta_z + u_i^T\lambda_z), 1)\\
+U &\sim& Bernoulli(\pi_u)\\
+\beta_s,\zeta_s &\sim& MVN(\mu_s, \Sigma_s)\\
+\zeta_z &\sim& MVN(\mu_z, \Sigma_z)\\
+\sigma^2_s &\sim& IG(a_0,b_0)\\
+\lambda_s, \lambda_z &\sim& Unif(-\delta,\delta)
+\end{eqnarray}
+
+We now describe the sampling schemes: 
+\begin{itemize}
+    \item Assign initial values to unobserved parameters and $U$;
+    \item Sample $U$ from its full conditionals, 
+        \begin{eqnarray*}
+            U_i|Y_s, Z, \textbf{X}, \beta_s, \zeta_s,\zeta_z,\lambda_s,\lambda_z &\sim& Bernoulli(\frac{\pi_{u=1}}{\pi_{u=1}+\pi_{u=0}}), \\
+            \pi_{u=l} &=& f(y_s|Z,U=l, \textbf{X}, \beta_s, \zeta_s,\lambda_s)\\ & & \Phi(\textbf{x}_i^T\zeta_z + l^T\lambda_z)^Z(1-\Phi(\textbf{x}_i^T\zeta_z + l^T\lambda_z))^{1-Z}\pi_u
+        \end{eqnarray*}
+     \item Sample $\beta_s, \zeta_s,\zeta_z$ from full conditionals using a Gibbs sampler;\\
+     \item Sample $\sigma^2_s$ from full conditionals using a Gibbs sampler;\\
+     \item Sample $\lambda_s$,$\lambda_z$ from full conditionals using a Gibbs sampler;\\
+     \item Sample the censored observation $y_s$ from truncated normal distribution given by, \\
+         \begin{euqation*}
+         $y_s \sim N(z_i^T\beta_s + \textbf{x}_i^T\zeta_s + u_i^T\lambda_s, \sigma^2_s)I\{y_s> \log(t^*_i)\}$, 
+         \end{euqation*}
+     \item Calculate average treatment effect (ATE) by estimating $\hat{\Delta}_{reg}, \hat{\Delta}_{ipw}$, and $\hat{\Delta}_{dr}$ using the updated posterior draws.
+\end{itemize}
+
+\section{Simulated Data Analysis}\label{analysis}
+\subsection{Simulation setting}\label{analysis}
+To investigate the performance of BSA models in relation to varying effects of unmeasured confounding $U$ on treatment and/or outcome, we conducted simulation studies. We set sample size $n=1000$, and created a grid of values $\{-0.75,-0.5,-0.1,0, 0.1,0.5,0.75\}$  for the two bias parameters $\lambda_s$, and $\lambda_z$. We sampled $U \sim Bernoulli(0.5)$, $X1, X2 \sim Normal(0,1)$ and $X3, X4 \sim Bernoulli(0.5)$. We set the covariate coefficients of treatment model $\zeta_z = \{-1, 0.4,0.4,0.4,0.4\}$, and those of outcome model $\zeta_s = \{-3, 0.5,0.5,0.5,0.5\}$ and coeffecient of treatment $\beta_s=-1$. For the seek of model comparison, we perform naive analysis by fitting accelerated failure time and generalized linear model with probit link function without accounting for unmeasured confounding. Overall, we created 49 simulated datasets with varying pair of bias parameters from the grid of values, and fitted both BSA and naive models and compared the estimated ACE estimators. 
+
+For BSA, ACE estimators were calculated for each MCMC iteration and $95\%$ crediable intervals were derived based on posterior samples. MCMC steps were iterated for 25,000 times with the first 5,000 runs discarded. We retained every $100^{\text{th}}$ run to reduce autocorrelation. For naive model, we conducted bootstrap with random resampling with replacement by 200 times and $95\%$ confidence intervals were derived from bootstrap samples. 
+
+\subsection{Simulation results}\label{analysis}
+Figure 1-3 display the estimated average treatment effects aggregated by simulations methods and bias parameters  $\lambda_{a}$ and $\lambda_{s}$ grid cells, using three ATE estimators. When using G-computation which largely relies on the outcome model, both BSA and naive methods performed acceptably well in terms of retaining the true estimate $\Delta=-1$. When the level of association between $U$ and treatment $Z$ is substantial and that between $U$ and outcome $Y.s$ is negligible, BSA appears to be subject to bias. 
+
+When using IPW estimator, BSA outperformed the naïve model under most of scenarios, even when the level of confounding is small. When the magnitude of association between U and either treatment or outcome is large, BSA with IPW estimator appear to cover the true ATE estimator. However, when the level of confounding is substantial, that is, the absolute value of both bias parameters are large, BSA slightly underestimated. 
+
+Compared to BSA G-computation and BSA IPW estimators, BSA DR estimator appears to be more stable with the level of confounding. It is due to the appealing feature of DR estimator that only requires at least one model is correctly specified. 
+
+Lastly, we repeated analyses with 50 random datasets and calculated coverage rates by sensitivity analysis methods. Naive method using IPW and DR estimators had the poorest performance. Compared to the naive method with G-computation estimator (denoted as "reg"), BSA method with G-computation estimator performed comparably good. Both BSA method with IPW and DR estimators were not substantially different from BSA method with G-computation estimator.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.05\linewidth]{imagens/reg.png}
+    \caption{Box plots for the estimated average treatment effects aggregated by simulations and by levels of confounding, that is, $a=\lambda_{a}$ and $s=\lambda_{s}$ grid cells, using G-computation}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=1.05\linewidth]{imagens/ipw.png}
+        \caption{Box plots for the estimated average treatment effects aggregated by simulations and by levels of confounding, that is, $a=\lambda_{a}$ and $s=\lambda_{s}$ grid cells, using inverse probability of treatment weighting (IPW)}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=1.05\linewidth]{imagens/dr.png}
+    \caption{Box plots for the estimated average treatment effects aggregated by simulations and by levels of confounding, that is, $a=\lambda_{a}$ and $s=\lambda_{s}$ grid cells, using doubly robust (DR) estimator}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=1.05\linewidth]{imagens/bsa.png}
+    \caption{Box plots for the estimated average treatment effects aggregated by simulations and by levels of confounding, that is, $a=\lambda_{a}$ and $s=\lambda_{s}$ grid cells, comparing G-computation, IPW, and DR estimator}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=1.05\linewidth]{imagens/coverage.png}
+    \caption{Coverage rates for the estimated average treatment effects aggregated by 50 simulations and by levels of confounding, that is, $a=\lambda_{a}$ and $s=\lambda_{s}$ grid cells, comparing G-computation, IPW, and DR estimator}
+\end{figure}
+
+\section{Discussion}\label{analysis}
+In this simulation study, we have shown a full Bayesian sensitivity analysis with different ATE estimators. Compared to naive methods that ignore the presence of unmeasured confounding factor, BSA showed consistent estimations by levels of confounding and choices of ATE estimators. IPW and DR estimators using a naive model appeared to be subject to bias and failed to capture the true ATE in most of cases.
+
+As opposed to fixing bias parameters, we updated bias parameters at each MCMC iteration, as we aimed to propose a method that provide flexibility to recover the estimate when unmeasured confounding is present. However, the proposed model might be sensitive to the priors assigned for bias parameters. In the simulation, we assigned $Uniform(-3,3)$ to both bias parameters. Sensitivity analysis with different priors need to be conducted.  
+
+When level of confounding is large, both BSA and naive methods tend to prone to bias, which indicate that the proposed models still need to be improved. And we only considered a simplest scenarios as all covariates are linear and independent. The proposed methods need to be examined with complicated data.
